@@ -70,45 +70,49 @@ def text_emoji_search(text: str, acceptable_symbols: list or str):
     return emoji
 
 
-def token_scan(text: str, dictionary: dict, positive_key: str, negative_key: str):
+def token_scan(text: str, positive_key: str, negative_key: str, negation_key: str, positive_negative_key: str, dict_of_pos_neg_words: dict, num_of_pos_emote=0,  num_of_neg_emote=0, check_for_pos_neg=True,):
     """ finds negative and positive words and combinations in a given text"
     :param
             text: text we want to scan
-            dictionary: a dictionary of positive and negative words
             positive_key: a key for positive words in a dictionary
             negative_key: a key for negative words in a dictionary
             positive_negative_key: a key for pos_neg_words
+            negation_key: a key for negation words in a dictionary
+            positive_negative_key: a key for
+            dict_of_pos_neg_words: dictionary of toned words
+            num_of_neg_emote: number of negative emoticons
+            check_for_pos_neg: optional boolean parameter. Set to falls if you don't want to check for
     :returns
-        a list of 2 lists with positive (1st list) and negative (2nd list) words and word combinations if they are in a tweet
+        a list of 2 lists with positive (1st list), negative (2nd list), and negations (3rd list) words and word combinations if they are in a tweet
     :rtype
         list"""
 
     text = text.split()
-    tokens = [[], []]
+    positive_negative = []
+    tokens = [[], [], []]
     for word in text:
         if word in ['не', "ни"]:
-            dict_findings['negation'].append(word)
-        elif word in dict_of_pos_neg_words['positive'] and len(word) > 3:
-            dict_findings['pos_words'].append(word)
-        elif word in dict_of_pos_neg_words['negative'] and len(word) > 3:
-            dict_findings['neg_words'].append(word)
-        elif word in dict_of_pos_neg_words['positive/negative'] and len(word) > 3:
-            dict_findings['pos_neg_words'].append(word)
+            tokens[2].append(word)
+        elif word in dict_of_pos_neg_words[positive_key]:
+            tokens[0].append(word)
+        elif word in dict_of_pos_neg_words[negative_key]:
+            tokens[1].append(word)
+        elif word in dict_of_pos_neg_words[positive_negative_key]:
+            positive_negative.append(word)
 
     # проверяем словосочетания (1-я итерация - словосочетания  с 2 словами, 2-я - с 3-мя)
-    if dict_findings['pos_words'] == 0 or dict_findings['neg_words'] == 0:
+    if tokens[0] == 0 or tokens[1] == 0:
         for j in range(2):
             for i in range(1 + j, len(text)):
-                if (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i]) in dict_of_pos_neg_words['positive']:
-                    dict_findings['pos_words'].append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
-                elif (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i][:-2]) in dict_of_pos_neg_words['negative']:
-                    dict_findings['neg_words'].append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
-                elif (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i]) in dict_of_pos_neg_words[
-                    'positive/negative']:
-                    dict_findings['pos_neg_words'].append(
-                        text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
-    pass
-
+                if (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i]) in dict_of_pos_neg_words[positive_key]:
+                    tokens[0].append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
+                elif (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i][:-2]) in dict_of_pos_neg_words[negative_key]:
+                    tokens[1].append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
+                elif (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i]) in dict_of_pos_neg_words[positive_negative_key]:
+                    positive_negative.append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
+    return tokens
+def deal_with_pos_neg(list_of_words, dictionary ):
+    """"""
 
 
 def scan_a_tweet(tweet, dictionary):
