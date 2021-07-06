@@ -6,7 +6,8 @@ from emoji import demojize, emojize
 def main():
     req = requests.get("https://www.labinform.ru/pub/rusentilex/rusentilex_2017.txt").text
     dict_of_pos_neg_words = create_a_dictionary(req)
-    ser = open('output.csv').readlines()
+    print("и" in dict_of_pos_neg_words['positive'] or "и" in dict_of_pos_neg_words['negative'] or "и" in dict_of_pos_neg_words['positive/negative'])
+    ser = open(input('enter a path of a csv file')).readlines()
     for tweet in ser:
         move_to_correct_files(tweet, dict_of_pos_neg_words)
 
@@ -23,7 +24,7 @@ def move_to_correct_files(tweet: str, dictionary: dict, key_for_pos='positive', 
     check = scan_a_tweet(tweet.replace('\n', ''), dictionary, key_for_pos, key_for_neg, key_for_positive_neg)
 
     # теперь в зависимости от того что мы там нашли записываем в нужный файл
-    # ну например если в твите нашлись позитивные и негативные слова, то запишем его в two_token 
+    # ну например если в твите нашлись позитивные и негативные слова, то запишем его в two_token
 
     if (len(check['pos_words']) != 0 and len(check['neg_emoticons']) != 0) or (
             len(check['neg_words']) != 0 and len(check['pos_emoticons']) != 0):
@@ -73,50 +74,49 @@ def create_a_dictionary(dictionary_text: str, key_for_pos='positive', key_for_ne
     # в зависимости от части речи мы устанавливаем возможные окончания для слов и словосочетаний
     # и добавляет в словарь все возможные случаи
 
-    dict_of_pos_neg_words = {"positive": set([]), 'negative': set([]), 'positive/negative': set([])}
+    intonations = {"positive": set([]), 'negative': set([]), 'positive/negative': set([])}
     for line in dictionary_text.split("\r\n")[19:-1]:
         if line.split(", ")[3] in ['positive', 'negative', 'positive/negative']:
-            if line.split(", ")[1] == 'VG':
-                words = line.split(", ")[0].split(' ')
-                if words[-1][:-2] in ['сь', 'ся']:
-                    for ending_noun in n_endings:
-                        for ending_verb in v_endings:
-                            words[0] = words[0][:-2] + ending_noun
-                            words[-1] = words[-1][:-4] + ending_verb + words[-1][:-2]
-                            dict_of_pos_neg_words[line.split(", ")[3]].add(' '.join(words))
-                else:
-                    for ending_noun in n_endings:
-                        for ending_verb in v_endings:
-                            words[0] = words[0][:-2] + ending_noun
-                            words[-1] = words[-1][:-2] + ending_verb
-                            dict_of_pos_neg_words[line.split(", ")[3]].add(' '.join(words))
-            elif line.split(", ")[1] == 'VG':
-                words = line.split(", ")[0].split(' ')
-                for ending_adjective in adj_endings:
-                    for ending_noun in n_endings:
-                        words[0] = words[0][:-2] + ending_adjective
-                        words[-1] = words[-1][:-2] + ending_noun
-                        dict_of_pos_neg_words[line.split(", ")[3]].add(' '.join(words))
-            elif line.split(", ")[1] == 'Verb':
+            if line.split(", ")[1] == 'Verb':
                 if line.split(", ")[0][-2:] in ['ся', "сь"]:
                     for ending in v_endings:
-                        dict_of_pos_neg_words[line.split(", ")[3]].add(
+                        intonations[line.split(", ")[3]].add(
                             line.split(", ")[0][:-4] + ending + line.split(", ")[0][-2:])
-                    dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0])
+                    intonations[line.split(", ")[3]].add(line.split(", ")[0])
                 else:
                     for ending in v_endings:
-                        dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0][:-2] + ending)
-                    dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0])
+                        intonations[line.split(", ")[3]].add(line.split(", ")[0][:-2] + ending)
+                    intonations[line.split(", ")[3]].add(line.split(", ")[0])
             elif line.split(", ")[1] == 'Noun':
                 for ending in n_endings:
-                    dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0][:-2] + ending)
-                dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0])
+                    intonations[line.split(", ")[3]].add(line.split(", ")[0][:-2] + ending)
+                intonations[line.split(", ")[3]].add(line.split(", ")[0])
             elif line.split(', ')[1] == 'Adj':
                 for ending in adj_endings:
-                    dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0][:-2] + ending)
-                dict_of_pos_neg_words[line.split(", ")[3]].add(line.split(", ")[0])
-    return {key_for_pos: dict_of_pos_neg_words['positive'], key_for_neg:dict_of_pos_neg_words['negative'], key_for_positive_neg:['positive/negative']}
+                    intonations[line.split(", ")[3]].add(line.split(", ")[0][:-2] + ending)
+                intonations[line.split(", ")[3]].add(line.split(", ")[0])
 
+    # Подчищаем словарь от слов с одной буквой
+    # (просто если у слова с 3-мя буквами убрать последние 2 и поставить нулевое окончание, то
+    # будет одна буква в словаре и будет находить союзы как тональные слова
+
+    for letter in "йцукенгшщзхъфывапролджэёячсмитьбю":
+        for letter_2 in "йцукенгшщзхъфывапролджэёячсмитьбю":
+            if letter in intonations["positive"]:
+                intonations["positive"].remove(letter)
+            if letter in intonations["negative"]:
+                intonations['negative'].remove(letter)
+            if letter in intonations["positive/negative"]:
+                intonations['positive/negative'].remove(letter)
+            if letter+letter_2 in intonations["positive"]:
+                intonations["positive"].remove(letter+letter_2)
+            if letter+letter_2 in intonations["negative"]:
+                intonations['negative'].remove(letter+letter_2)
+            if letter+letter_2 in intonations["positive/negative"]:
+                intonations['positive/negative'].remove(letter+letter_2)
+
+
+    return intonations
 
 def emoji_search(text: str, neg_emoji_keywords: list, pos_emoji_keywords: list):
     """ searches for emoji in a given text
@@ -170,7 +170,6 @@ def text_emoji_search(text: str, acceptable_symbols: list or str):
 
 
     emoji =[[], []]
-    text = ':'.join(text)
     twit_1 = text.replace('::', '')
     emote = ''
     for symbol in twit_1:
@@ -181,7 +180,7 @@ def text_emoji_search(text: str, acceptable_symbols: list or str):
                 emoji[0].append(emote)
                 emote = ''
             elif '(' in emote:
-                emoji[0].append(emote)
+                emoji[1].append(emote)
                 emote = ''
             else:
                 emote = ''
@@ -205,6 +204,11 @@ def token_scan(text: str, positive_key: str, negative_key: str, positive_negativ
     :rtype
         list"""
 
+    message = text
+    for character in message:
+        if not character.isalpha():
+            text.replace(character, '')
+
     text = text.split()
     positive_negative = []
     tokens = [[], [], []]
@@ -218,18 +222,7 @@ def token_scan(text: str, positive_key: str, negative_key: str, positive_negativ
         elif word in dict_of_pos_neg_words[positive_negative_key]:
             positive_negative.append(word)
 
-    # проверяем словосочетания (1-я итерация - словосочетания  с 2 словами, 2-я - с 3-мя)
-    if tokens[0] == 0 or tokens[1] == 0:
-        for j in range(2):
-            for i in range(1 + j, len(text)):
-                if (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i]) in dict_of_pos_neg_words[positive_key]:
-                    tokens[0].append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
-                elif (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i][:-2]) in dict_of_pos_neg_words[negative_key]:
-                    tokens[1].append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
-                elif (text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i]) in dict_of_pos_neg_words[positive_negative_key]:
-                    positive_negative.append(text[i - 1 - j] + ' ' + text[i - 1] * j + ' ' * j + text[i])
-
-    # если тон слова зависит от контекста проверяем больше ли в твите поситивных или негативных эиотиконов
+    # если тон слова зависит от контекста проверяем больше ли в твите поpитивных или негативных эиотиконов
 
     if (len(tokens[0]) == 0 or len(tokens[1]) == 0) and len(tokens[2]) != 0:
         if len(tokens[0]) + num_of_pos_emote > len(tokens[1]) + num_of_neg_emote:
