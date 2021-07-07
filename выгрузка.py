@@ -7,7 +7,7 @@ def main():
     req = requests.get("https://www.labinform.ru/pub/rusentilex/rusentilex_2017.txt").text
     dict_of_pos_neg_words = create_a_dictionary(req)
     print("и" in dict_of_pos_neg_words['positive'] or "и" in dict_of_pos_neg_words['negative'] or "и" in dict_of_pos_neg_words['positive/negative'])
-    ser = open(input('enter a path of a csv file')).readlines()
+    ser = open(input('enter a path to a csv')).readlines()
     for tweet in ser:
         move_to_correct_files(tweet, dict_of_pos_neg_words)
 
@@ -118,7 +118,7 @@ def create_a_dictionary(dictionary_text: str, key_for_pos='positive', key_for_ne
 
     return intonations
 
-def emoji_search(text: str, neg_emoji_keywords: list, pos_emoji_keywords: list):
+def emoji_search(text: str, pos_emoji_keywords: list, neg_emoji_keywords: list):
     """ searches for emoji in a given text
     :param
             text: a string in which emoji wanted to be detected
